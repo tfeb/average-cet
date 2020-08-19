@@ -12,3 +12,6 @@ compiled/
 
 # Emacs tags
 TAGS
+
+# Downloaded data files
+*.dat

@@ -2,6 +2,7 @@
 
 ;;; File from http://hadobs.metoffice.com/hadcet/cetml1659on.dat
 ;;; via https://www.trevorharley.com/weather.html
+;;; (See Makefile which will fetch it)
 ;;;
 
 (require racket/string
@@ -12,13 +13,16 @@
     (λ (in) form ...)))
 
 (define (tokenize-file f)
-  ;; You need to prune the header by hand
   (define this-year (pregexp (format "^[[:space:]]*~A"
                                (date-year (seconds->date (current-seconds))))))
+  (define good-line
+    ;; a good line starts with a date and then has 13 floats
+    #px"^[[:space:]]*[[:digit:]]{4}\
+([[:space:]]+[[:digit:]]+\\.[[:digit:]]+){13}")
   (with-open-input-file (in f)
     (for/list ([l (in-lines in)]
                #:when (and (regexp-match?
-                            #px"^[[:space:]]*[[:digit:]]{4}[[:space:]]"
+                            good-line
                             l)
                            (not (regexp-match this-year l))))
       (for/list ([e (in-list (string-split l))])
@@ -50,8 +54,8 @@
         #:y-label "temperature"))
 
 (define (at-below-hottest f
-                           #:since (since #f)
-                           #:averages (averager summer-averages))
+                          #:since (since #f)
+                          #:averages (averager summer-averages))
   (let* ([averages (averager (tokenize-file f) #:since since)]
          [hottest (second (argmax second averages))])
     (for/list ([a (in-list averages)])
