@@ -1,0 +1,14 @@
+# Ignore emacs backups & auto save files
+*~
+\#*\#
+.\#*
+
+# Scratch directories
+scratch/
+tmp/
+
+# Racket compiled files
+compiled/
+
+# Emacs tags
+TAGS
