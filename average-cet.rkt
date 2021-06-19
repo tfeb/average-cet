@@ -18,7 +18,7 @@
   (define good-line
     ;; a good line starts with a date and then has 13 floats
     #px"^[[:space:]]*[[:digit:]]{4}\
-([[:space:]]+[[:digit:]]+\\.[[:digit:]]+){13}")
+([[:space:]]+[-+]?[[:digit:]]+\\.[[:digit:]]+){13}")
   (with-open-input-file (in f)
     (for/list ([l (in-lines in)]
                #:when (and (regexp-match?
@@ -27,6 +27,19 @@
                            (not (regexp-match this-year l))))
       (for/list ([e (in-list (string-split l))])
         (string->number e)))))
+
+(define (validate-tf-year-sequence tf)
+  ;; Validate the year sequence
+  (let loop ([last-year (first (first tf))]
+             [tft (rest tf)])
+    (match tft
+      ['() (values #t #f)]
+      [(list* (list* this-year _) ntft)
+       (if (= this-year (+ last-year 1))
+           (loop this-year ntft)
+           (values #f last-year))]
+      [_
+       (error 'tf-year-sequence-continuous? "what?")])))
 
 (define (summer-averages d #:since (since #f))
   (for/list ([yl (in-list d)]
