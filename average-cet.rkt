@@ -59,17 +59,21 @@
 
 (plot-font-family 'modern)
 
-(define (plot-summer-averages (f (data-file)) #:since (since #f))
-  (plot (lines (summer-averages (tokenize-file f) #:since since))
-        #:title "Summer (JJA) CE average temperature"
-        #:x-label "year"
-        #:y-label "temperature"))
+(define (plot-summer-averages (f (data-file)) #:since (since #f)
+                              #:to (to #f))
+  ((if to (curryr plot-file to) plot)
+   (lines (summer-averages (tokenize-file f) #:since since))
+   #:title "Summer (JJA) CE average temperature"
+   #:x-label "year"
+   #:y-label "temperature"))
 
-(define (plot-year-averages (f (data-file)) #:since (since #f))
-  (plot (lines (year-averages (tokenize-file f) #:since since))
-        #:title "CE average temperature over year"
-        #:x-label "year"
-        #:y-label "temperature"))
+(define (plot-year-averages (f (data-file)) #:since (since #f)
+                            #:to (to #f))
+  ((if to (curryr plot-file to) plot)
+   (lines (year-averages (tokenize-file f) #:since since))
+   #:title "CE average temperature over year"
+   #:x-label "year"
+   #:y-label "temperature"))
 
 (define (at-below-hottest (f (data-file))
                           #:since (since #f)
@@ -150,7 +154,8 @@
 
 (define (plot-decadal-averages (f (data-file))
                                #:since (since #f)
-                               #:decade (decade 10))
+                               #:decade (decade 10)
+                               #:to (to #f))
   ;; Plot decadal averages where a 'decade' can be any length of time
   (define yvs (vectorify-years (tokenize-file f)
                                #:since (if since (- since (- decade 1)) #f)))
@@ -158,10 +163,11 @@
   (unless (or (not since)
             (= start since))
     (error 'plot-decadal-averages "~A is too early: start=~A" since start))
-  (plot (lines (for/vector ([a (in-vector (average-vector yvs decade
-                                                          ya-average))]
-                            [y (in-naturals start)])
-                 (list y a)))
-        #:title (format "CE decadal averages from ~A (decade=~A)" start decade)
-        #:x-label "year"
-        #:y-label (format "average temperature, last ~A years" decade)))
+  ((if to (curryr plot-file to) plot)
+   (lines (for/vector ([a (in-vector (average-vector yvs decade
+                                                      ya-average))]
+                        [y (in-naturals start)])
+             (list y a)))
+   #:title (format "CE decadal averages from ~A (decade=~A)" start decade)
+   #:x-label "year"
+   #:y-label (format "average temperature, last ~A years" decade)))
