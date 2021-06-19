@@ -1,3 +1,8 @@
 This is a trivial Racket program which will plot central England
 temperature records from the Met Office.  It's just playing: it was
-initially a gist but has now got a bit bigger.
+initially a gist but has now got a bit bigger.  You can also plot
+temperatures averaged over a 'decade' where a 'decade' is in fact
+configurable.
+
+It looks to me as if some of the late-17th-century averages in the
+data are wrong, but I may be misunderstanding them.

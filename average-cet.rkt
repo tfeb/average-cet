@@ -106,3 +106,56 @@
 (define (%-chance-within-hottest ab within)
   (let-values ([(bc ac) (chances-within-hottest ab within)])
     (values (* bc 100.0) (* ac 100.0) (* 1.0 (/ ac bc)))))
+
+;;; Decadal averages (or averages over a period)
+;;;
+
+(struct ya (year average months))
+
+(define (vectorify-years years #:since (since #f))
+  ;; Turn a list of years into a vector of ya objects
+  (for/vector ([yl (in-list years)]
+               #:when (or (not since) (>= (first yl) since)))
+    (match-let ([(list year january february march april may june
+                       july august september
+                       october november december average) yl])
+      (ya year average
+          (vector january february march april may june
+                  july august september
+                  october november december)))))
+
+(define (average-vector v n (vf identity))
+  ;; Return a vector which averages the last n elements of v,
+  ;; extracting values with vf
+  (define l (vector-length v))
+  (define (sum-stream index current)
+    (cond
+      [(< index l)
+       (let ([new (+ (- current (vf (vector-ref v (- index n))))
+                     (vf (vector-ref v index)))])
+         (stream-cons current (sum-stream (+ index 1) new)))]
+      [(= index l)
+       empty-stream]
+      [else
+       (error 'sum-stream "bad index")]))
+  (for/vector ([s (in-stream (sum-stream n
+                                         (for/sum ([i (in-range n)])
+                                           (vf (vector-ref v i)))))])
+    (/ s n)))
+
+(define (plot-decadal-averages f #:since (since #f)
+                               #:decade (decade 10))
+  ;; Plot decadal averages where a 'decade' can be any length of time
+  (define yvs (vectorify-years (tokenize-file f)
+                               #:since (if since (- since (- decade 1)) #f)))
+  (define start (ya-year (vector-ref yvs (- decade 1))))
+  (unless (or (not since)
+            (= start since))
+    (error 'plot-decadal-averages "~A is too early: start=~A" since start))
+  (plot (lines (for/vector ([a (in-vector (average-vector yvs decade
+                                                          ya-average))]
+                            [y (in-naturals start)])
+                 (list y a)))
+        #:title (format "CE decadal averages from ~A (decade=~A)" start decade)
+        #:x-label "year"
+        #:y-label (format "average temperature, last ~A years" decade)))
