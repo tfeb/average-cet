@@ -12,7 +12,12 @@
   (call-with-input-file file
     (λ (in) form ...)))
 
-(define (tokenize-file f)
+(define data-file (make-parameter "cetml1659on.dat"))
+
+(define (tokenize-file (f (data-file)))
+  (unless (or (file-exists? f)
+              (system* (find-executable-path "make") f #:set-pwd? #t))
+    (error 'tokenize-file "no file ~A and could not make it" f))
   (define this-year (pregexp (format "^[[:space:]]*~A"
                                (date-year (seconds->date (current-seconds))))))
   (define good-line
@@ -54,19 +59,19 @@
 
 (plot-font-family 'modern)
 
-(define (plot-summer-averages f #:since (since #f))
+(define (plot-summer-averages (f (data-file)) #:since (since #f))
   (plot (lines (summer-averages (tokenize-file f) #:since since))
         #:title "Summer (JJA) CE average temperature"
         #:x-label "year"
         #:y-label "temperature"))
 
-(define (plot-year-averages f #:since (since #f))
+(define (plot-year-averages (f (data-file)) #:since (since #f))
   (plot (lines (year-averages (tokenize-file f) #:since since))
         #:title "CE average temperature over year"
         #:x-label "year"
         #:y-label "temperature"))
 
-(define (at-below-hottest f
+(define (at-below-hottest (f (data-file))
                           #:since (since #f)
                           #:averages (averager summer-averages))
   (let* ([averages (averager (tokenize-file f) #:since since)]
@@ -143,7 +148,8 @@
                                            (vf (vector-ref v i)))))])
     (/ s n)))
 
-(define (plot-decadal-averages f #:since (since #f)
+(define (plot-decadal-averages (f (data-file))
+                               #:since (since #f)
                                #:decade (decade 10))
   ;; Plot decadal averages where a 'decade' can be any length of time
   (define yvs (vectorify-years (tokenize-file f)
