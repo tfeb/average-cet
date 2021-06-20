@@ -198,10 +198,11 @@
                                 #:to (to #f))
   ;; Plot decaying averages where the decay is how long to remember
   (define yvs (vectorify-years (tokenize-file f) #:since since))
+  (define start (or since (ya-year (vector-ref yvs 0))))
   ((if to (curryr plot-file to) plot)
    (lines (for/vector ([a (in-vector (decaying-average-vector yvs decay
                                                               ya-average))]
-                       [y (in-naturals since)])
+                       [y (in-naturals start)])
             (list y a)))
    #:title (format "CE decaying averages from ~A (decay=~A)" since decay)
    #:x-label "year"
