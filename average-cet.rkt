@@ -8,6 +8,9 @@
 (require racket/string
          plot)
 
+(module+ test
+  (require rackunit))
+
 (define-syntax-rule (with-open-input-file (in file) form ...)
   (call-with-input-file file
     (λ (in) form ...)))
@@ -153,6 +156,18 @@
                                            (vf (vector-ref v i)))))])
     (/ s n)))
 
+(module+ test
+  (test-case
+   "average vector"
+   (let ([v #(1 2 3 4)])
+     (check-equal? (average-vector v 1) v)
+     (check-equal? (average-vector v 2) #(3/2 5/2 7/2)))
+   (let* ([vl #(1 2 3 7 7 7 7)]
+          [vla (average-vector vl 3)])
+     (check-eqv? (vector-length vla) (- (vector-length vl) 2))
+     (check-eqv? (vector-ref vla (- (vector-length vla) 1))
+                 (vector-ref vl (- (vector-length vl) 1))))))
+
 (define (plot-decadal-averages (f (data-file))
                                #:since (since #f)
                                #:decade (decade 10)
@@ -173,7 +188,11 @@
    #:x-label "year"
    #:y-label (format "average temperature, last ~A years" decade)))
 
+;;; Decaying averages
+;;;
+
 (define (decaying-average-vector v d (vf identity))
+  ;; What should this do about zero-length vectors?
   (define l (vector-length v))
   (define d-1/d (/ (- d 1) d))
   (define (da-stream index current)
@@ -188,8 +207,22 @@
        (stream-cons current empty-stream)]
       [else
        (error 'da-stream "bad index")]))
-  (for/vector ([s (in-stream (da-stream 0 (vf (vector-ref v 0))))])
+  (for/vector ([s (in-stream (da-stream 1 (vf (vector-ref v 0))))])
     s))
+
+(module+ test
+  (test-case
+   "decaying average vector"
+   (let ([v #(1)])
+     (check-equal? (decaying-average-vector v 10) v))
+   (let ([v #(1 2 3)])
+     (check-equal? (decaying-average-vector v 1) v)
+     (check-equal? (decaying-average-vector v 2)
+                   #(1 3/2 9/4)))
+   (let* ([vl #(1 2 3 4 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7 7)]
+          [vla (decaying-average-vector vl 2)])
+     (check-not-eqv? (vector-ref vl (- (vector-length vl) 1))
+                     (vector-ref vla (- (vector-length vla) 1))))))
 
 (define (plot-decaying-averages (f (data-file))
                                 #:decay (decay 10)
