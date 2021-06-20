@@ -140,11 +140,12 @@
   (define (sum-stream index current)
     (cond
       [(< index l)
-       (let ([new (+ (- current (vf (vector-ref v (- index n))))
-                     (vf (vector-ref v index)))])
-         (stream-cons current (sum-stream (+ index 1) new)))]
+       (stream-cons current (sum-stream
+                             (+ index 1)
+                             (+ (- current (vf (vector-ref v (- index n))))
+                                (vf (vector-ref v index)))))]
       [(= index l)
-       empty-stream]
+       (stream-cons current empty-stream)]
       [else
        (error 'sum-stream "bad index")]))
   (for/vector ([s (in-stream (sum-stream n
@@ -171,3 +172,37 @@
    #:title (format "CE decadal averages from ~A (decade=~A)" start decade)
    #:x-label "year"
    #:y-label (format "average temperature, last ~A years" decade)))
+
+(define (decaying-average-vector v d (vf identity))
+  (define l (vector-length v))
+  (define d-1/d (/ (- d 1) d))
+  (define (da-stream index current)
+    (cond
+      [(< index l)
+       (stream-cons current
+                    (da-stream (+ index 1)
+                               (+ (/ (vf (vector-ref v index))
+                                     d)
+                                  (* current d-1/d))))]
+      [(= index l)
+       (stream-cons current empty-stream)]
+      [else
+       (error 'da-stream "bad index")]))
+  (for/vector ([s (in-stream (da-stream 0 (vf (vector-ref v 0))))])
+    s))
+
+(define (plot-decaying-averages (f (data-file))
+                                #:decay (decay 10)
+                                #:since (since #f)
+                                #:decade (decade 10)
+                                #:to (to #f))
+  ;; Plot decaying averages where the decay is how long to remember
+  (define yvs (vectorify-years (tokenize-file f) #:since since))
+  ((if to (curryr plot-file to) plot)
+   (lines (for/vector ([a (in-vector (decaying-average-vector yvs decay
+                                                              ya-average))]
+                       [y (in-naturals since)])
+            (list y a)))
+   #:title (format "CE decaying averages from ~A (decay=~A)" since decay)
+   #:x-label "year"
+   #:y-label (format "average temperature, decayed over ~A years" decade)))
