@@ -8,4 +8,4 @@ cetml1659on.dat:
 	curl -O --insecure https://hadobs.metoffice.com/hadcet/cetml1659on.dat
 
 clean:
-	rm cetml1659on.dat
+	rm -f cetml1659on.dat *~
