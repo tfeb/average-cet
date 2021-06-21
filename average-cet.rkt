@@ -23,18 +23,25 @@
     (error 'tokenize-file "no file ~A and could not make it" f))
   (define this-year (pregexp (format "^[[:space:]]*~A"
                                (date-year (seconds->date (current-seconds))))))
+  (define missing-data (pregexp (regexp-quote "-99.9")))
   (define good-line
     ;; a good line starts with a date and then has 13 floats
     #px"^[[:space:]]*[[:digit:]]{4}\
 ([[:space:]]+[-+]?[[:digit:]]+\\.[[:digit:]]+){13}")
-  (with-open-input-file (in f)
-    (for/list ([l (in-lines in)]
-               #:when (and (regexp-match?
-                            good-line
-                            l)
-                           (not (regexp-match this-year l))))
-      (for/list ([e (in-list (string-split l))])
-        (string->number e)))))
+  (let ([sequence
+          (with-open-input-file (in f)
+            (for/list ([l (in-lines in)]
+                       #:when (and (regexp-match?
+                                    good-line
+                                    l)
+                                   (not (regexp-match missing-data l))
+                                   (not (regexp-match this-year l))))
+              (for/list ([e (in-list (string-split l))])
+                (string->number e))))])
+    (let-values ([(valid bad-year) (validate-tf-year-sequence sequence)])
+      (unless valid
+        (error 'tokenize-file "sequence break at ~A" bad-year)))
+    sequence))
 
 (define (validate-tf-year-sequence tf)
   ;; Validate the year sequence
@@ -47,7 +54,7 @@
            (loop this-year ntft)
            (values #f last-year))]
       [_
-       (error 'tf-year-sequence-continuous? "what?")])))
+       (error 'validate-tf-year-sequence "what?")])))
 
 (define (summer-averages d #:since (since #f))
   (for/list ([yl (in-list d)]
