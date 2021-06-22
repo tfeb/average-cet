@@ -3,7 +3,8 @@ temperature records from the Met Office.  It's just playing: it was
 initially a gist but has now got a bit bigger.  You can also plot
 temperatures averaged over a 'decade' where a 'decade' is in fact
 configurable, as well as a decaing average temperature with a
-configurable decay.
+configurable decay.  Finally you can plot monthly average temperatures
+in 3d.
 
 The decadal and decaying algorithms may be questionable or wrong: I
 wrote them quickly and without thinking very hard.

@@ -126,10 +126,13 @@
   (let-values ([(bc ac) (chances-within-hottest ab within)])
     (values (* bc 100.0) (* ac 100.0) (* 1.0 (/ ac bc)))))
 
+
 ;;; Decadal averages (or averages over a period)
 ;;;
 
-(struct ya (year average months))
+(struct ya
+  ;; a yearly average
+  (year average months))
 
 (define (vectorify-years years #:since (since #f))
   ;; Turn a list of years into a vector of ya objects
@@ -195,6 +198,7 @@
    #:x-label "year"
    #:y-label (format "average temperature, last ~A years" decade)))
 
+
 ;;; Decaying averages
 ;;;
 
@@ -247,3 +251,103 @@
    #:title (format "CE decaying averages from ~A (decay=~A)" since decay)
    #:x-label "year"
    #:y-label (format "average temperature, decayed over ~A years" decade)))
+
+
+;;; Monthly averages
+;;;
+
+(define (average-monthly-temperatures yvs i0 i1)
+  ;; Compute average monthly temperatures between i0 (inclusive)
+  ;; and i1 (exclusive)
+  (for/fold ([sums (make-vector 12 0.0)]
+             #:result (let ([years (- i1 i0)])
+                        (for ([m (in-range 12)])
+                          (vector-set! sums m
+                                       (/ (vector-ref sums m) years)))
+                        sums))
+            ([yv (in-vector yvs i0 i1)])
+    (for ([m (in-naturals)]
+          [t (in-vector (ya-months yv))])
+      (vector-set! sums m (+ (vector-ref sums m) t)))
+    sums))
+
+(struct mat
+  ;; monthly averaged temperatures over a range of years
+  ;; The end year is exclusive
+  (start-year end-year averages))
+
+(define (monthly-averages yvs
+                          #:start-year (start-year #f)
+                          #:end-year (end-year #f)
+                          #:average-over (average-over 1))
+  ;; Compute a list of mat objects
+  (define yvl (vector-length yvs))
+  (define i0 (if (not start-year)
+                 0
+                 (- start-year (ya-year (vector-ref yvs 0)))))
+  (define i1 (if (not end-year)
+                 yvl
+                 (+ i0 1
+                    (- end-year (ya-year (vector-ref yvs i0))))))
+  (unless (and (>= i0 0)
+               (< i0 i1)
+               (<= i1 (vector-length yvs)))
+    (error 'monthly-averages
+           "insane indices ~A, ~A (data has ~A years from ~A)"
+           i0 i1 yvl (ya-year (vector-ref yvl 0))))
+  (unless (> average-over 0)
+    (error 'monthly-averages "average over ~A is insane" average-over))
+  (for/list ([start (in-range i0 i1 average-over)])
+    (let ([end (min (+ start average-over) yvl)]
+          [start-year (ya-year (vector-ref yvs start))])
+      (mat start-year
+           (+ start-year (- end start))
+           (average-monthly-temperatures yvs start end)))))
+
+(define month-lengths
+  ;; No leap years!
+  #(31 28 31 30 31 30 31 31 30 31 30 31))
+
+(define month-starts
+  (for/vector ([m (in-range 12)])
+    (for/sum ([n (in-range m)])
+      (vector-ref month-lengths n))))
+
+(define (month-bounds month start-year end-year value)
+  ;; The bounds for a given month in a range of years with a value
+  (define start-day (vector-ref month-starts month))
+  (define end-day (+ start-day (vector-ref month-lengths month)))
+  ;; xmin xmax, ymin ymax zmin zmax
+  (list (ivl start-day end-day)
+        (ivl start-year end-year)
+        (ivl 0 value)))
+
+(define (monthly-averages->bounds averages)
+  ;; compute the bounds for a list of monthly averages
+  (for*/list ([avg (in-list averages)]
+              [month (in-range 12)])
+    (month-bounds month (mat-start-year avg) (mat-end-year avg)
+                  (vector-ref (mat-averages avg) month))))
+
+(define (plot-monthly-averages (f (data-file))
+                               #:start-year (start-year #f)
+                               #:end-year (end-year #f)
+                               #:average-over (average-over 50)
+                               #:to (to #f)
+                               #:alpha (alpha 0.8))
+  ;; Plot monthly averages
+  (define averages (monthly-averages
+                    (vectorify-years (tokenize-file f))
+                    #:start-year start-year #:end-year end-year
+                    #:average-over average-over))
+  ((if to (curryr plot3d-file to) plot3d)
+   (rectangles3d (monthly-averages->bounds averages)
+                 #:alpha alpha)
+   #:title (format "CE monthly average temperature ~A-~A, ~Ayr average"
+             (mat-start-year (first averages))
+             (- (mat-end-year (last averages)) 1)
+             (- (mat-end-year (first averages))
+                (mat-start-year (first averages))))
+   #:x-label "day of year"
+   #:y-label "year"
+   #:z-label "temperature"))
