@@ -294,7 +294,7 @@
                (<= i1 (vector-length yvs)))
     (error 'monthly-averages
            "insane indices ~A, ~A (data has ~A years from ~A)"
-           i0 i1 yvl (ya-year (vector-ref yvl 0))))
+           i0 i1 yvl (ya-year (vector-ref yvs 0))))
   (unless (> average-over 0)
     (error 'monthly-averages "average over ~A is insane" average-over))
   (for/list ([start (in-range i0 i1 average-over)])
