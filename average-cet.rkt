@@ -181,7 +181,9 @@
 (define (plot-decadal-averages (f (data-file))
                                #:since (since #f)
                                #:decade (decade 10)
-                               #:to (to #f))
+                               #:to (to #f)
+                               #:t-min (t-min #f)
+                               #:t-max (t-max #f))
   ;; Plot decadal averages where a 'decade' can be any length of time
   (define yvs (vectorify-years (tokenize-file f)
                                #:since (if since (- since (- decade 1)) #f)))
@@ -196,7 +198,9 @@
              (list y a)))
    #:title (format "CE decadal averages from ~A (decade=~A)" start decade)
    #:x-label "year"
-   #:y-label (format "average temperature, last ~A years" decade)))
+   #:y-label (format "average temperature, last ~A years" decade)
+   #:y-min t-min
+   #:y-max t-max))
 
 
 ;;; Decaying averages
@@ -239,7 +243,9 @@
                                 #:decay (decay 10)
                                 #:since (since #f)
                                 #:decade (decade 10)
-                                #:to (to #f))
+                                #:to (to #f)
+                                #:t-min (t-min #f)
+                                #:t-max (t-max #f))
   ;; Plot decaying averages where the decay is how long to remember
   (define yvs (vectorify-years (tokenize-file f) #:since since))
   (define start (or since (ya-year (vector-ref yvs 0))))
@@ -250,7 +256,9 @@
             (list y a)))
    #:title (format "CE decaying averages from ~A (decay=~A)" since decay)
    #:x-label "year"
-   #:y-label (format "average temperature, decayed over ~A years" decade)))
+   #:y-label (format "average temperature, decayed over ~A years" decade)
+   #:y-min t-min
+   #:y-max t-max))
 
 
 ;;; Monthly averages
@@ -334,7 +342,9 @@
                                #:end-year (end-year #f)
                                #:average-over (average-over 50)
                                #:to (to #f)
-                               #:alpha (alpha 0.8))
+                               #:alpha (alpha 0.8)
+                               #:t-min (t-min #f)
+                               #:t-max (t-max #f))
   ;; Plot monthly averages
   (define averages (monthly-averages
                     (vectorify-years (tokenize-file f))
@@ -350,4 +360,6 @@
                 (mat-start-year (first averages))))
    #:x-label "day of year"
    #:y-label "year"
-   #:z-label "temperature"))
+   #:z-label "temperature"
+   #:z-min t-min
+   #:z-max t-max))
