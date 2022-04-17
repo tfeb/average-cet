@@ -6,14 +6,11 @@
 ;;;
 
 (require racket/string
-         plot)
+         plot
+         "util.rkt")
 
 (module+ test
   (require rackunit))
-
-(define-syntax-rule (with-open-input-file (in file) form ...)
-  (call-with-input-file file
-    (λ (in) form ...)))
 
 (define data-file (make-parameter "cetml1659on.dat"))
 

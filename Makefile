@@ -1,11 +1,15 @@
 # Get a copy of the data
-# The MO's cert has currently expired, hence the --insecure option
 #
 
-.PHONY: clean
+.PHONY: clean data-files
+
+data-files: cetml1659on.dat cetdl1172on.dat
 
 cetml1659on.dat:
-	curl -O --insecure https://hadobs.metoffice.com/hadcet/cetml1659on.dat
+	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/cetml1659on.dat
+
+cetdl1172on.dat:
+	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/cetdl1772on.dat
 
 clean:
-	rm -f cetml1659on.dat *~
+	rm -f cetml1659on.dat cetdl1172on.dat *~
