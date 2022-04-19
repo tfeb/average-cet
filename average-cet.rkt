@@ -1,7 +1,7 @@
 #lang racket
 
-;;; File from http://hadobs.metoffice.com/hadcet/cetml1659on.dat
-;;; via https://www.trevorharley.com/weather.html
+;;; File from https://www.metoffice.gov.uk/hadobs/hadcet/cetml1659on.dat
+;;; originally via https://www.trevorharley.com/weather.html
 ;;; (See Makefile which will fetch it)
 ;;;
 

@@ -1,5 +1,8 @@
 #lang racket
 
+;;;; Some macros which are useful
+;;;
+
 (provide with-open-input-file
          --> -->*)
 

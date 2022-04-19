@@ -1,7 +1,7 @@
-# Get a copy of the data
+# Get copies of the data files
 #
 
-.PHONY: clean data-files
+.PHONY: data-files clean
 
 data-files: cetml1659on.dat cetdl1172on.dat
 

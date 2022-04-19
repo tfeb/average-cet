@@ -11,3 +11,7 @@ wrote them quickly and without thinking very hard.
 
 It looks to me as if some of the late-17th-century averages in the
 data are wrong, but I may be misunderstanding them.
+
+There is now also an attempt at computing and plotting the growing
+season changes, using MO daily temperature data.  This is a lot less
+thought-about than the abovve code.
