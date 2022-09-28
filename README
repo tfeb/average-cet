@@ -1,3 +1,8 @@
+NOTE: as of sometime in 2022 the Met Office has changed the format
+(and location) of this data.  I will update this program in due
+course.
+
+
 This is a trivial Racket program which will plot central England
 temperature records from the Met Office.  It's just playing: it was
 initially a gist but has now got a bit bigger.  You can also plot
