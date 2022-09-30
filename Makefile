@@ -26,3 +26,4 @@ cetdl1772on.dat:
 
 clean:
 	rm -f $(DATAFILES) $(LEGACYFILES) *~
+	rm -rf compiled
