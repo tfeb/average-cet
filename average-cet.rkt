@@ -1,8 +1,12 @@
 #lang racket
 
-;;; File from https://www.metoffice.gov.uk/hadobs/hadcet/cetml1659on.dat
+;;; File from
+;;; https://www.metoffice.gov.uk/hadobs/hadcet/data/meantemp_monthly_totals.txt
+;;; replacing the legacy file from
+;;; https://www.metoffice.gov.uk/hadobs/hadcet/legacy/data/cetml1659on.dat
+;;; Both via https://www.metoffice.gov.uk/hadobs/hadcet/index.html
 ;;; originally via https://www.trevorharley.com/weather.html
-;;; (See Makefile which will fetch it)
+;;; (See Makefile which will fetch them)
 ;;;
 
 (require racket/string
@@ -12,7 +16,7 @@
 (module+ test
   (require rackunit))
 
-(define data-file (make-parameter "cetml1659on.dat"))
+(define data-file (make-parameter "meantemp_monthly_totals.txt"))
 
 (define (tokenize-file (f (data-file)))
   (unless (or (file-exists? f)

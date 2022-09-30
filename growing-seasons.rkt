@@ -1,8 +1,12 @@
 #lang racket
 
 ;;;; An attempt at growing season lengths
-;;; CET daily data from https://www.metoffice.gov.uk/hadobs/hadcet/cetdl1772on.dat
-;;; via https://www.metoffice.gov.uk/hadobs/hadcet/data/download.html
+;;; CET daily data from
+;;; https://www.metoffice.gov.uk/hadobs/hadcet/data/meantemp_daily_totals.txt
+;;; replacing legacy file (old format) from
+;;; https://www.metoffice.gov.uk/hadobs/hadcet/legacy/data/cetdl1772on.dat
+;;;
+;;; Both via https://www.metoffice.gov.uk/hadobs/hadcet/index.html
 ;;;
 ;;; start of growing season is 5 days with temperature above 5, end
 ;;; is 5 days with temperature below 5, starting from July
@@ -18,73 +22,30 @@
 (module+ test
   (require rackunit))
 
-(define data-file (make-parameter "cetdl1772on.dat"))
-
-(define missing-data -999)
-
-(define temperature-scale 10)
+(define data-file (make-parameter "meantemp_daily_totals.txt"))
 
 ;;;; Turning the file into a reasonable format
-;;; Lines in the file are of the form year day-of-month entry-for-jan
-;;; ... entry-for-december
+;;; Lines in the file are YYYY-MM-DD temp
 ;;;
 
 (define (tokenize-file (f (data-file)))
-  ;; Read the file and return the obvious structure as lists
+  ;; Read the file and return the obvious structure as a list of
+  ;; (yyyy mm dd temperatyre) lists.
   (unless (or (file-exists? f)
               (system* (find-executable-path "make") f #:set-pwd? #t))
     (error 'tokenize-file "no file ~A and could not make it" f))
   (define good-line
-    ;; a good line is a year, a day of the month and then 12 integers
-    #px"^[[:space:]]*[[:digit:]]{4}\
-([[:space:]]+[-+]?[[:digit:]]+){13}")
+    #px"^[[:space:]]*([[:digit:]]{4})-([[:digit:]]{2})-([[:digit:]]{2})\
+[[:space:]]+([-+]?[[:digit:]]+(?:[.][[:digit:]]+))[[:space:]]*$")
+  ;; a good line is a yyyy-mm-dd x.y
   (with-open-input-file (in f)
-    (for/list ([l (in-lines in)]
-               #:when (regexp-match?
-                       good-line
-                       l))
-      (for/list ([e (in-list (string-split l))])
-        (string->number e)))))
-
-(define (maybe-beyond-month-end? day month)
-  (case month
-    ((2) (> day 28))
-    (else (> day 30))))
-
-(define (prune-and-tag-lines lines #:report-missing (report-missing #f))
-  ;; return a (backwards) list of tagged entries which are (y m d t)
-  (for/fold ([tagged-lines '()])
-            ([line lines])
-    (match-let ([(list* year day entries) line])
-      (for/fold ([tagged-entries tagged-lines])
-                ([month (in-naturals 1)]
-                 [entry (in-list entries)])
-        (cond
-          [(and (= entry missing-data)
-                (maybe-beyond-month-end? day month))
-           ;; if the entry is missing data and plausibly beyond the
-           ;; end of the month just ignore it
-           tagged-entries]
-          [(= entry missing-data)
-           ;; some other missing data
-           (when report-missing
-             (printf "missing data ~A-~A-~A~%" year month day))
-           (cons (list year month day #f) tagged-entries)]
-          [else (cons (list year month day entry) tagged-entries)])))))
-
-(define (sort-tagged-entries entries)
-  (sort entries <
-        #:key (λ (entry)
-                (match-let ([(list y m d _) entry])
-                  ;; if every month has 31 days this counts days
-                  (+ (* y 372) (* m 31) d)))
-        #:cache-keys? #t))
-
-(define (prune-deaders entries)
-  ;; entry is (day month day-in-month temp): chop off leading dead entries
-  (if (fourth (first entries))
-      entries
-      (prune-deaders (rest entries))))
+    (for/fold ([matched '()] #:result (reverse matched))
+              ([line (in-lines in)])
+      (match line
+        [(pregexp good-line (list* _ vals))
+         (cons (map string->number vals) matched)]
+        [_
+         matched]))))
 
 (define (yearify entries)
   ;; Turn a flat list of (year month day temp) into a list of entries
@@ -102,9 +63,7 @@
                                    (cons
                                     (cons current-year
                                           (list->vector
-                                           (reverse
-                                            (prune-deaders
-                                             entries-in-current-year))))
+                                           (reverse entries-in-current-year)))
                                     years))))
             ([entry (in-list entries)])
     (match-let ([(list year month day temperature) entry])
@@ -116,8 +75,7 @@
                   (+ current-year-day 1))
           (values (cons (cons current-year
                               (list->vector
-                               (reverse (prune-deaders
-                                         entries-in-current-year))))
+                               (reverse entries-in-current-year)))
                         years)
                   (list (list 1 month day temperature))
                   year
@@ -168,21 +126,19 @@
                          #:n-end (n-end 5)
                          #:end-from-fraction (end-from-fraction 7/12))
   ;; Return list of (yyyy start end)
-  (define scaled-day-temp fourth)
+  (define day-temp fourth)
   (for/list ([year yeared])
     (match-let ([(cons yyyy entries) year])
       (let* ([l (vector-length entries)]
              [l/2 (round (* l end-from-fraction))]
              [start (find-first-n-matching
                      (λ (day)
-                       (>= (scaled-day-temp day)
-                           (* start-temp temperature-scale)))
+                       (>= (day-temp day) start-temp))
                      n-start entries 0 l)]
              [end (and start
                        (find-first-n-matching
                         (λ (day)
-                          (< (scaled-day-temp day)
-                             (* end-temp temperature-scale)))
+                          (< (day-temp day) end-temp))
                         n-end entries (max start l/2) l))])
         (list yyyy start (or end l))))))
 
@@ -190,8 +146,6 @@
   ;; Compose all the above to produce a vector of (yyyy l)
   (for/vector ([gs (in-list (--> file
                                tokenize-file
-                               prune-and-tag-lines
-                               sort-tagged-entries
                                yearify
                                growing-seasons))]
                #:when (second gs))

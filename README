@@ -1,8 +1,3 @@
-NOTE: as of sometime in 2022 the Met Office has changed the format
-(and location) of this data.  I will update this program in due
-course.
-
-
 This is a trivial Racket program which will plot central England
 temperature records from the Met Office.  It's just playing: it was
 initially a gist but has now got a bit bigger.  You can also plot
@@ -19,4 +14,11 @@ data are wrong, but I may be misunderstanding them.
 
 There is now also an attempt at computing and plotting the growing
 season changes, using MO daily temperature data.  This is a lot less
-thought-about than the abovve code.
+thought-about than the above code.
+
+---
+
+As of sometime in 2022 the Met Office has changed the format
+(and location) of this data.  This code has been changed to know the
+new locations and (in the case of the daily data) to use the new,
+better format.  I haven't extensively tested this.

@@ -3,13 +3,26 @@
 
 .PHONY: data-files clean
 
-data-files: cetml1659on.dat cetdl1172on.dat
+DATAFILES = meantemp_daily_totals.txt meantemp_monthly_totals.txt
+
+LEGACYFILES = cetml1659on.dat cetdl1772on.dat
+
+data-files: $(DATAFILES)
+
+legacy-files: $(LEGACYFILES)
+
+meantemp_monthly_totals.txt:
+	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/data/meantemp_monthly_totals.txt
 
 cetml1659on.dat:
-	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/cetml1659on.dat
+	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/legacy/data/cetml1659on.dat
 
-cetdl1172on.dat:
-	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/cetdl1772on.dat
+meantemp_daily_totals.txt:
+	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/data/meantemp_daily_totals.txt
+
+cetdl1772on.dat:
+	curl -O https://www.metoffice.gov.uk/hadobs/hadcet/legacy/data/cetdl1772on.dat
+
 
 clean:
-	rm -f cetml1659on.dat cetdl1172on.dat *~
+	rm -f $(DATAFILES) $(LEGACYFILES) *~
