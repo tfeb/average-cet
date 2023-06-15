@@ -255,7 +255,7 @@
                                                               ya-average))]
                        [y (in-naturals start)])
             (list y a)))
-   #:title (format "CE decaying averages from ~A (decay=~A)" since decay)
+   #:title (format "CE decaying averages since ~A (decay=~A)" start decay)
    #:x-label "year"
    #:y-label (format "average temperature, decayed over ~A years" decade)
    #:y-min t-min
