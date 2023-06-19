@@ -69,6 +69,7 @@
     (list (first yl) (last yl))))
 
 (plot-font-family 'modern)
+(plot-width (round (* (plot-width) 4/3))) ;?
 
 (define (plot-summer-averages (f (data-file)) #:since (since #f)
                               #:to (to #f))
@@ -197,9 +198,15 @@
                                                       ya-average))]
                         [y (in-naturals start)])
              (list y a)))
-   #:title (format "CE decadal averages from ~A (decade=~A)" start decade)
+   #:title (case decade
+             ((1) (format "CE temperatures since ~A" start))
+             ((10) (format "CE decadal averages from ~A)" start))
+             (else (format "CE averages from ~A, averaged over ~A years"
+                     start decade)))
    #:x-label "year"
-   #:y-label (format "average temperature, last ~A years" decade)
+   #:y-label (case decade
+               ((1) (format "average temperature"))
+               (else (format "average temperature, last ~A years" decade)))
    #:y-min t-min
    #:y-max t-max))
 
