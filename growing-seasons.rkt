@@ -47,7 +47,7 @@
         [_
          matched]))))
 
-(define (yearify entries)
+(define (yearify entries #:include-partial-years (include-partial-years #f))
   ;; Turn a flat list of (year month day temp) into a list of entries
   ;; of the form (year . entries) where entries is a vector od days
   ;; and each day is (day-number month day temp) & day-number is the
@@ -56,15 +56,16 @@
              [entries-in-current-year '()]
              [current-year (first (first entries))]
              [current-year-day 1]
-             #:result (reverse (if (< current-year-day 365)
-                                   ;; the current year is short or
-                                   ;; hasn't started: ignore it
-                                   years
+             #:result (reverse (if (or include-partial-years
+                                       (>= current-year-day 365))
                                    (cons
                                     (cons current-year
                                           (list->vector
                                            (reverse entries-in-current-year)))
-                                    years))))
+                                    years)
+                                   ;; the current year is short or
+                                   ;; hasn't started:
+                                   years)))
             ([entry (in-list entries)])
     (match-let ([(list year month day temperature) entry])
       (if (eqv? year current-year)
@@ -80,6 +81,52 @@
                   (list (list 1 month day temperature))
                   year
                   2)))))
+
+(define (plot-daily-temperatures (f (data-file))
+                               #:start-year (start-year #f)
+                               #:end-year (end-year #f)
+                               #:to (to #f)
+                               #:alpha (alpha 0.8)
+                               #:t-min (t-min #f)
+                               #:t-max (t-max #f))
+  ;; Plot raw daily temperatures.  This is uninformative, in fact.
+  (define years (filter (λ (year-data)
+                                 (define year (car year-data))
+                          (and (if start-year
+                                          (>= year start-year)
+                                          #t)
+                                      (if end-year
+                                          (<= year end-year)
+                                          #t)))
+                               (yearify (tokenize-file f)
+                                        #:include-partial-years #t)))
+  (define first-year (car (first years)))
+  (define last-year (car (last years)))
+  (define year-array
+    (for/vector ([year-record (in-list years)])
+      (for/vector ([day (in-vector (cdr year-record))])
+        (fourth day))))
+  (for ([y (in-vector year-array)])
+    (displayln (vector-length y)))
+  ((if to (curryr plot3d-file to) plot3d)
+   (surface3d (λ (d y)
+                (define yv (vector-ref year-array (- (inexact->exact (round y))
+                                                     first-year)))
+                (if (< d (vector-length yv))
+                    (vector-ref yv (inexact->exact (round d)))
+                    0.0))
+              #:alpha alpha)
+   #:title (format "CE daily temperature ~A-~A"
+             first-year last-year)
+   #:y-min first-year
+   #:y-max last-year
+   #:x-min 0
+   #:x-max 365
+   #:x-label "day of year"
+   #:y-label "year"
+   #:z-label "temperature"
+   #:z-min t-min
+   #:z-max t-max))
 
 ;;;; Finding the start and end of seasons
 ;;;
