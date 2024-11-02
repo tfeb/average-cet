@@ -69,7 +69,7 @@
     (list (first yl) (last yl))))
 
 (plot-font-family 'modern)
-(plot-width (round (* (plot-width) 4/3))) ;?
+(plot-width 560) ;was (round (* (plot-width) 4/3))
 
 (define (plot-summer-averages (f (data-file)) #:since (since #f)
                               #:to (to #f))
@@ -397,3 +397,12 @@
    #:z-label "temperature"
    #:z-min t-min
    #:z-max t-max))
+
+#||
+;;; For article
+;;;
+
+(plot-decadal-averages #:since 1824 #:decade 5)
+
+(plot-decadal-averages #:since 1824 #:decade 5 #:summer #t #:winter #f)
+||#
