@@ -134,19 +134,27 @@
 
 (struct ya
   ;; a yearly average
-  (year average months))
+  (year average months)
+  #:transparent)
 
-(define (vectorify-years years #:since (since #f))
-  ;; Turn a list of years into a vector of ya objects
+(define (vectorify-years years #:since (since #f)
+                         #:summer (summer #f))
+  ;; Turn a list of years into a vector of ya objects.
+  ;; since is the start year if given.
+  ;; summer means average only june july august.  This is replicating code from
+  ;; above, which sucks.
   (for/vector ([yl (in-list years)]
                #:when (or (not since) (>= (first yl) since)))
     (match-let ([(list year january february march april may june
                        july august september
                        october november december average) yl])
-      (ya year average
-          (vector january february march april may june
-                  july august september
-                  october november december)))))
+      (if summer
+          (ya year (/ (+ (* june 30) (* july 31) (* august 31)) 92)
+              (vector june july august))
+          (ya year average
+              (vector january february march april may june
+                      july august september
+                      october november december))))))
 
 (define (average-vector v n (vf identity))
   ;; Return a vector which averages the last n elements of v,
@@ -185,19 +193,37 @@
                                #:decade (decade 10)
                                #:to (to #f)
                                #:t-min (t-min #f)
-                               #:t-max (t-max #f))
+                               #:t-max (t-max #f)
+                               #:annual (annual #t)
+                               #:summer (summer #f))
   ;; Plot decadal averages where a 'decade' can be any length of time
   (define yvs (vectorify-years (tokenize-file f)
                                #:since (if since (- since (- decade 1)) #f)))
+  (define svs (vectorify-years (tokenize-file f)
+                               #:since (if since (- since (- decade 1)) #f)
+                               #:summer #t))
   (define start (ya-year (vector-ref yvs (- decade 1))))
   (unless (or (not since)
             (= start since))
     (error 'plot-decadal-averages "~A is too early: start=~A" since start))
   ((if to (curryr plot-file to) plot)
-   (lines (for/vector ([a (in-vector (average-vector yvs decade
-                                                      ya-average))]
-                        [y (in-naturals start)])
-             (list y a)))
+   (append
+    (if annual
+        (list (lines (for/vector ([a (in-vector (average-vector yvs decade
+                                                                ya-average))]
+                                  [y (in-naturals start)])
+                       (list y a))
+                     #:color "green"
+                     #:label "annual average"))
+        '())
+    (if summer
+        (list (lines (for/vector ([a (in-vector (average-vector svs decade
+                                                                ya-average))]
+                                  [y (in-naturals start)])
+                       (list y a))
+                     #:color "gold"
+                     #:label "summer average"))
+        '()))
    #:title (case decade
              ((1) (format "CE temperatures since ~A" start))
              ((10) (format "CE decadal averages from ~A)" start))
