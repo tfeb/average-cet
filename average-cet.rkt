@@ -138,7 +138,8 @@
   #:transparent)
 
 (define (vectorify-years years #:since (since #f)
-                         #:summer (summer #f))
+                         #:summer (summer #f)
+                         #:winter (winter #f))
   ;; Turn a list of years into a vector of ya objects.
   ;; since is the start year if given.
   ;; summer means average only june july august.  This is replicating code from
@@ -148,13 +149,30 @@
     (match-let ([(list year january february march april may june
                        july august september
                        october november december average) yl])
-      (if summer
-          (ya year (/ (+ (* june 30) (* july 31) (* august 31)) 92)
-              (vector june july august))
-          (ya year average
+      (cond
+        [(and winter summer)
+         (error 'vectorify-years "summer or winter, not both")]
+        [summer
+         (ya year (/ (+ (* june 30) (* july 31) (* august 31)) 92)
+             (vector june july august))]
+        [winter
+         (ya year
+             (if (and (zero? (modulo year 4))
+                      (if (zero? (modulo year 100))
+                          (zero? (modulo year 400))
+                          #t))
+                 (/ (+ (* december 31) (* january  31)
+                       (* february 29))
+                    91)
+                 (/ (+ (* december 31) (* january  31)
+                       (* february 28))
+                    90))
+             (vector december january february))]
+        [else
+         (ya year average
               (vector january february march april may june
                       july august september
-                      october november december))))))
+                      october november december))]))))
 
 (define (average-vector v n (vf identity))
   ;; Return a vector which averages the last n elements of v,
@@ -195,13 +213,18 @@
                                #:t-min (t-min #f)
                                #:t-max (t-max #f)
                                #:annual (annual #t)
-                               #:summer (summer #f))
+                               #:summer (summer #f)
+                               #:winter (winter #f))
   ;; Plot decadal averages where a 'decade' can be any length of time
-  (define yvs (vectorify-years (tokenize-file f)
+  (define tokenized (tokenize-file f))
+  (define yvs (vectorify-years tokenized
                                #:since (if since (- since (- decade 1)) #f)))
-  (define svs (vectorify-years (tokenize-file f)
+  (define svs (vectorify-years tokenized
                                #:since (if since (- since (- decade 1)) #f)
                                #:summer #t))
+  (define wvs (vectorify-years tokenized
+                               #:since (if since (- since (- decade 1)) #f)
+                               #:winter #t))
   (define start (ya-year (vector-ref yvs (- decade 1))))
   (unless (or (not since)
             (= start since))
@@ -223,6 +246,14 @@
                        (list y a))
                      #:color "gold"
                      #:label "summer average"))
+        '())
+    (if winter
+        (list (lines (for/vector ([a (in-vector (average-vector wvs decade
+                                                                ya-average))]
+                                  [y (in-naturals start)])
+                       (list y a))
+                     #:color "blue"
+                     #:label "winter average"))
         '()))
    #:title (case decade
              ((1) (format "CE temperatures since ~A" start))
